@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube Live View Counter</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 50px;
+      background-color: #f9f9f9;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+      margin: 5px;
+    }
+    h2 {
+      color: #cc0000;
+    }
+  </style>
+</head>
+<body>
+  <h2>YouTube Live View Counter</h2>
+  <p>Enter a YouTube Video ID:</p>
+  <input type="text" id="videoId" placeholder="e.g. dQw4w9WgXcQ">
+  <button onclick="getViewCount()">Check Views</button>
+  <h3 id="viewCount">Waiting for input...</h3>
+
+  <script>
+    async function getViewCount() {
+      const videoId = document.getElementById("videoId").value;
+      const apiKey = "YOUR_API_KEY"; // Replace with your actual YouTube Data API key
+      const url = `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${videoId}&key=${apiKey}`;
+
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.items && data.items.length > 0) {
+          const views = data.items[0].statistics.viewCount;
+          document.getElementById("viewCount").innerText = `Views: ${views}`;
+        } else {
+          document.getElementById("viewCount").innerText = "Invalid Video ID or no data.";
+        }
+      } catch (error) {
+        console.error(error);
+        document.getElementById("viewCount").innerText = "Error fetching data.";
+      }
+    }
+
+    // Optional: Auto-refresh every 5 seconds if a video ID is already entered
+    setInterval(() => {
+      const id = document.getElementById("videoId").value;
+      if (id) getViewCount();
+    }, 5000);
+  </script>
+</body>
+</html>
