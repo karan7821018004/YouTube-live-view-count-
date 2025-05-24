@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Video View Counter</title>
+</head>
+<body>
+    <h1>YouTube Video View Counter</h1>
+    <input type="text" id="youtubeUrl" placeholder="Enter YouTube Video URL">
+    <button id="getViewCountBtn">Get View Count</button>
+    <div id="resultArea"></div>
+
+    <script>
+        const urlInput = document.getElementById('youtubeUrl');
+        const getViewsBtn = document.getElementById('getViewCountBtn');
+        const resultArea = document.getElementById('resultArea');
+
+        // Function to extract YouTube Video ID from various URL formats
+        function extractVideoId(url) {
+            let videoId = null;
+            const regexes = [
+                /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([^&]+)/,
+                /(?:https?:\/\/)?youtu\.be\/([^?]+)/,
+                /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([^?]+)/,
+                /(?:https?:\/\/)?(?:www\.)?youtube\.com\/v\/([^?]+)/,
+                /(?:https?:\/\/)?(?:www\.)?youtube\.com\/shorts\/([^?]+)/
+            ];
+
+            for (const regex of regexes) {
+                const match = url.match(regex);
+                if (match && match[1]) {
+                    videoId = match[1];
+                    break;
+                }
+            }
+            // Further check to ensure it's a valid ID format (11 characters, no spaces, etc.)
+            if (videoId && /^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+                return videoId;
+            }
+            return null;
+        }
+
+        getViewsBtn.addEventListener('click', async () => {
+            resultArea.textContent = ''; // Clear previous results
+            const url = urlInput.value.trim();
+
+            if (!url) {
+                resultArea.textContent = 'Please enter a YouTube video URL.';
+                return;
+            }
+
+            const videoId = extractVideoId(url);
+
+            if (!videoId) {
+                resultArea.textContent = 'Invalid YouTube URL or Video ID could not be extracted.';
+                return;
+            }
+
+            try {
+                resultArea.textContent = 'Fetching view count...'; // Loading message
+                const response = await fetch(`/video-stats?videoId=${videoId}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.error) {
+                        resultArea.textContent = `Error: ${data.error}`;
+                    } else if (data.liveViewCount !== undefined) {
+                        resultArea.textContent = `Live Viewers: ${data.liveViewCount.toLocaleString()}`;
+                    } else if (data.totalViewCount !== undefined) {
+                        resultArea.textContent = `Total Views: ${data.totalViewCount.toLocaleString()}`;
+                    } else {
+                        resultArea.textContent = 'Could not retrieve view count. The video may not have view statistics available or it might be a private video.';
+                    }
+                } else {
+                    const errorData = await response.json().catch(() => null); // Try to parse error, but don't fail if not JSON
+                    if (errorData && errorData.error) {
+                        resultArea.textContent = `Error: ${errorData.error} (Status: ${response.status})`;
+                    } else {
+                        resultArea.textContent = `Error fetching data from the server. Status: ${response.status}`;
+                    }
+                }
+            } catch (error) {
+                console.error('Frontend fetch error:', error);
+                resultArea.textContent = 'An error occurred while trying to fetch video statistics. Please check your network connection or try again later.';
+            }
+        });
+    </script>
+</body>
+</html>
